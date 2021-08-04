@@ -35,6 +35,9 @@ loop() ->
         {Sender, {step, Size}} ->
             perform_steps(Size),
             Sender ! {self(), {step, ok}};
+	{Sender, {step_elevator, Size}} ->
+            perform_steps(Size),
+            Sender ! {self(), {step_elevator, ok}};
         {Sender, {update, Floor, Direction, {QC, QN, QAN}}} ->
             put(current_floor, Floor),
             put(current_direction, Direction),

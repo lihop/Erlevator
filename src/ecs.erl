@@ -10,7 +10,10 @@
     request/2,
     update/4,
     step/0,
-    step/1
+    step/1,
+    step_elevator/0,
+    step_elevator/1,
+    step_elevator/2
 ]).
 
 -export([
@@ -119,6 +122,20 @@ step(Size) when is_integer(Size) andalso Size > 0 ->
 step(_) ->
     message({invalid_args, "step()"}).
 
+% STEP_ELEVATOR:
+% Performs N simulation steps for elevator with the given ID.
+%
+% Example:
+% $> ecs:step(1, 2).
+step_elevator() ->
+    message({invalid_args, "step_elevator()"}).
+step_elevator(ElevatorID) when is_integer(ElevatorID) ->
+    step_elevator(ElevatorID, 1).
+step_elevator(ElevatorID, Size) when is_integer(ElevatorID) andalso is_integer(Size) andalso Size > 0 ->
+    gen_server:call(?MODULE, {step_elevator, ElevatorID, Size});
+step_elevator(_,_) ->
+    message({invalid_args, "step_elevator()"}).
+
 % INTERNAL (GEN_SERVER)
 
 init([NumberOfElevators, {Low, High}]) ->
@@ -147,6 +164,17 @@ handle_call({step, Size}, _Caller, State) ->
     [ PID ! {self(), {step, Size}} || PID <- PIDs ],
     Result = collect(PIDs),
     {reply, Result, State};
+
+handle_call({step_elevator, EID, Size}, _Caller, State) ->
+    PID = elevator_process_by_id(State, EID),
+    case PID =:= void of
+        true ->
+            {reply, message({invalid_elevator_id, EID}), State};
+	false ->
+	    PID ! {self(), {step_elevator, Size}},
+	    Result = collect([PID]),
+	    {reply, Result, State}
+    end;
 
 handle_call({request, From, To}, _Caller, State) ->
     PIDs = elevator_processes(State),
